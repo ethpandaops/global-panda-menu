@@ -75,7 +75,7 @@ export function NetworkCategory({
       </button>
 
       {isExpanded && (
-        <div className="pb-1 pl-2">
+        <div className="pb-1">
           {activeNetworks.map(({ key, network }) => (
             <NetworkItem
               key={key}
