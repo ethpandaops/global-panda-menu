@@ -251,7 +251,8 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
               `}
               style={{
                 width: isExpandedAdjacent ? menuWidth : collapsedWidth,
-                height: isExpandedAdjacent ? 600 : 96
+                height: isExpandedAdjacent ? 'auto' : 96,
+                maxHeight: isExpandedAdjacent ? 'min(80vh, 600px)' : undefined
               }}
             >
               {/* Toggle button / header area */}
