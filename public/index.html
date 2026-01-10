@@ -227,7 +227,7 @@
         <h1>Panda Menu</h1>
         <p class="subtitle">Cross-service navigation menu for ethPandaOps tools</p>
 
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 32px;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 24px; margin-bottom: 32px;">
             <button onclick="window.PandaMenu?.open()" class="open-menu-btn">Open Menu</button>
             <span style="color: #a1a1aa; font-size: 0.875rem;">
                 or press <kbd class="kbd">Ctrl+M</kbd> to toggle
@@ -405,10 +405,10 @@
         </div>
 
         <div class="card">
-            <h2>Script Tag</h2>
-            <p class="note" style="margin-top: 0; margin-bottom: 12px;">Add this to your HTML to include the panda menu:</p>
-            <div id="script-tag" class="code-block loading">Loading...</div>
-            <button class="copy-btn" onclick="copyScriptTag()">Copy to clipboard</button>
+            <h2>Embed Code</h2>
+            <p class="note" style="margin-top: 0; margin-bottom: 12px;">Add this to your HTML to include the panda menu with your configuration:</p>
+            <div id="embed-code" class="code-block loading">Loading...</div>
+            <button class="copy-btn" onclick="copyEmbedCode()">Copy to clipboard</button>
         </div>
 
         <div class="card">
@@ -428,7 +428,8 @@
     </div>
 
     <script>
-        let scriptTagContent = '';
+        let baseScriptTag = '';
+        let embedCodeContent = '';
         const BASE_URL = window.location.origin;
 
         async function loadVersionInfo() {
@@ -455,8 +456,8 @@
                     </p>
                 `;
 
-                scriptTagContent = `<script src="${BASE_URL}/${metadata.filename}" integrity="${metadata.integrity.sha384}" crossorigin="anonymous"><\/script>`;
-                document.getElementById('script-tag').innerHTML = `<code>${escapeHtml(scriptTagContent)}</code>`;
+                baseScriptTag = `<script src="${BASE_URL}/${metadata.filename}" integrity="${metadata.integrity.sha384}" crossorigin="anonymous"><\/script>`;
+                generateEmbedCode();
 
                 document.getElementById('checksums').innerHTML = `
                     <tr><td>SHA-256</td><td>${metadata.integrity.sha256}</td></tr>
@@ -465,8 +466,8 @@
                 `;
             } catch (err) {
                 document.getElementById('version-info').innerHTML = `<span class="error">No releases available yet</span>`;
-                document.getElementById('script-tag').innerHTML = `<code>&lt;script src="${BASE_URL}/panda-menu.js"&gt;&lt;/script&gt;</code>`;
-                scriptTagContent = `<script src="${BASE_URL}/panda-menu.js"><\/script>`;
+                baseScriptTag = `<script src="${BASE_URL}/panda-menu.js"><\/script>`;
+                generateEmbedCode();
                 document.getElementById('checksums').innerHTML = `<tr><td colspan="2" class="error">No release metadata available</td></tr>`;
             }
         }
@@ -475,8 +476,54 @@
             return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        function copyScriptTag() {
-            navigator.clipboard.writeText(scriptTagContent).then(() => {
+        function generateEmbedCode() {
+            if (!baseScriptTag) return;
+
+            // Check if using defaults
+            const isDefault = currentMode === 'floating' &&
+                              currentDisplayStyle === 'adjacent' &&
+                              currentMenuSize === 'normal';
+
+            if (isDefault) {
+                embedCodeContent = baseScriptTag;
+            } else {
+                // Build config object with only non-default values
+                const config = {};
+
+                if (currentMode !== 'floating') {
+                    config.menuMode = currentMode;
+                }
+
+                if (currentMode === 'sidebar') {
+                    const sidebarConfig = {};
+                    if (currentSide !== 'left') sidebarConfig.side = currentSide;
+                    if (currentPosition !== 'center') sidebarConfig.position = currentPosition;
+                    if (Object.keys(sidebarConfig).length > 0) {
+                        config.sidebarConfig = sidebarConfig;
+                    }
+                }
+
+                if (currentDisplayStyle !== 'adjacent' && currentMode !== 'hidden') {
+                    config.displayStyle = currentDisplayStyle;
+                }
+
+                if (currentMenuSize !== 'normal') {
+                    config.menuSize = currentMenuSize;
+                }
+
+                // Format config object nicely
+                const configStr = JSON.stringify(config, null, 2)
+                    .replace(/"([^"]+)":/g, '$1:')  // Remove quotes from keys
+                    .replace(/"/g, "'");            // Use single quotes for values
+
+                embedCodeContent = `<script>\nwindow.PandaMenuConfig = ${configStr};\n<\/script>\n${baseScriptTag}`;
+            }
+
+            document.getElementById('embed-code').innerHTML = `<code>${escapeHtml(embedCodeContent)}</code>`;
+        }
+
+        function copyEmbedCode() {
+            navigator.clipboard.writeText(embedCodeContent).then(() => {
                 const btn = document.querySelector('.copy-btn');
                 const original = btn.textContent;
                 btn.textContent = 'Copied!';
@@ -562,6 +609,7 @@
 
         // Initialize on load
         initializeUI();
+        generateEmbedCode();
 
         function setMenuMode(mode) {
             if (mode === currentMode) return;
@@ -598,6 +646,7 @@
             }
 
             updateUrlParams();
+            generateEmbedCode();
         }
 
         function setDisplayStyle(style) {
@@ -616,6 +665,7 @@
             }
 
             updateUrlParams();
+            generateEmbedCode();
         }
 
         function setMenuSize(size) {
@@ -636,6 +686,7 @@
             }
 
             updateUrlParams();
+            generateEmbedCode();
         }
 
         function setSidebarSide(side) {
@@ -665,6 +716,7 @@
             }
 
             updateUrlParams();
+            generateEmbedCode();
         }
 
         function setSidebarPosition(position) {
@@ -680,6 +732,7 @@
             }
 
             updateUrlParams();
+            generateEmbedCode();
         }
 
         function updatePositionButtons() {

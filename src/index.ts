@@ -3,12 +3,17 @@ import { injectHostStyles, pollAndRender, renderMenu, cleanupRender } from './me
 import { PandaMenuContext } from './types/context';
 
 function initPandaMenu() {
+  // Read pre-init config from window.PandaMenuConfig
+  const config: Partial<PandaMenuContext> = (window as any).PandaMenuConfig || {};
+
+  // Set up runtime API on window.PandaMenu
   let pandaMenuCtx: PandaMenuContext = (window as any).PandaMenu = (window as any).PandaMenu || {};
   if (pandaMenuCtx.initialized) {
     return;
   }
 
-  Object.assign(pandaMenuCtx, {
+  // Merge config into context
+  Object.assign(pandaMenuCtx, config, {
     initialized: true,
     render: renderMenu,
     attach: pollAndRender,
@@ -35,8 +40,8 @@ function renderPandaMenu(pandaMenuCtx: PandaMenuContext) {
 
   // Determine menu mode, display style, and size (context override > host config)
   const menuMode = pandaMenuCtx.menuMode || getMenuMode();
-  const displayStyle = getDisplayStyle();
-  const menuSize = getMenuSize();
+  const displayStyle = pandaMenuCtx.displayStyle || getDisplayStyle();
+  const menuSize = pandaMenuCtx.menuSize || getMenuSize();
 
   switch (menuMode) {
     case 'attached': {
@@ -52,7 +57,7 @@ function renderPandaMenu(pandaMenuCtx: PandaMenuContext) {
       break;
     }
     case 'sidebar': {
-      const sidebarConfig = getSidebarConfig();
+      const sidebarConfig = pandaMenuCtx.sidebarConfig || getSidebarConfig();
       renderMenu(null, 'sidebar', sidebarConfig, displayStyle, menuSize);
       break;
     }
