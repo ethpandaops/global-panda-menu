@@ -1,7 +1,7 @@
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PandaMenu, PandaMenuHandle } from './components/PandaMenu';
-import { getMenuCss, getAttachParent, getHostCss, MenuMode, SidebarConfig } from './config/hostStyles';
+import { getMenuCss, getAttachParent, getHostCss, MenuMode, SidebarConfig, DisplayStyle } from './config/hostStyles';
 import { PandaMenuContext, RenderResult } from './types/context';
 
 import styles from './styles/index.css?inline';
@@ -38,7 +38,8 @@ export function cleanupRender() {
 export function renderMenu(
   attachTarget: HTMLElement | null,
   mode: MenuMode = 'floating',
-  sidebarConfig?: SidebarConfig
+  sidebarConfig?: SidebarConfig,
+  displayStyle: DisplayStyle = 'adjacent'
 ) {
   const hostElement = document.createElement('div');
   hostElement.id = MENU_ELEMENT_ID;
@@ -82,7 +83,7 @@ export function renderMenu(
   if (mode === 'attached' && attachTarget) {
     // Render in attached mode with target height for positioning
     const targetHeight = attachTarget.offsetHeight;
-    root.render(<PandaMenu ref={menuRef} mode="attached" attachTargetHeight={targetHeight} />);
+    root.render(<PandaMenu ref={menuRef} mode="attached" attachTargetHeight={targetHeight} displayStyle={displayStyle} />);
 
     // Attach click handler to the target element
     attachTarget.style.cursor = 'pointer';
@@ -94,10 +95,10 @@ export function renderMenu(
     attachTarget.addEventListener('click', clickHandler);
   } else if (mode === 'sidebar') {
     // Render in sidebar mode
-    root.render(<PandaMenu ref={menuRef} mode="sidebar" sidebarConfig={sidebarConfig} />);
+    root.render(<PandaMenu ref={menuRef} mode="sidebar" sidebarConfig={sidebarConfig} displayStyle={displayStyle} />);
   } else {
     // Default floating button mode
-    root.render(<PandaMenu ref={menuRef} mode="floating" />);
+    root.render(<PandaMenu ref={menuRef} mode="floating" displayStyle={displayStyle} />);
   }
 
   pandaMenuCtx.open = () => menuRef.current?.open();

@@ -227,7 +227,7 @@
         </div>
 
         <div class="card">
-            <h2>Menu Style</h2>
+            <h2>Menu Position</h2>
             <div class="toggle-group">
                 <button id="btn-floating" class="toggle-btn active" onclick="setMenuMode('floating')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,6 +329,27 @@
         </div>
 
         <div class="card">
+            <h2>Display Style</h2>
+            <div class="toggle-group">
+                <button id="btn-adjacent" class="toggle-btn active" onclick="setDisplayStyle('adjacent')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="6" height="6" rx="1"/>
+                        <rect x="3" y="11" width="10" height="10" rx="1"/>
+                    </svg>
+                    <span class="label">Adjacent</span>
+                </button>
+                <button id="btn-modal" class="toggle-btn" onclick="setDisplayStyle('modal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="2" width="20" height="20" rx="2" stroke-dasharray="3 2"/>
+                        <rect x="6" y="7" width="12" height="10" rx="1"/>
+                    </svg>
+                    <span class="label">Modal</span>
+                </button>
+            </div>
+            <p class="note">Adjacent: Menu appears next to the trigger. Modal: Menu appears centered with a darkened overlay.</p>
+        </div>
+
+        <div class="card">
             <h2>Latest Release</h2>
             <div id="version-info" class="loading">Loading version info...</div>
         </div>
@@ -420,15 +441,18 @@
         let currentMode = urlParams.get('mode') || 'floating';
         let currentPosition = urlParams.get('position') || 'center';
         let currentSide = urlParams.get('side') || 'left';
+        let currentDisplayStyle = urlParams.get('display') || 'adjacent';
 
         // Validate params
         if (!['floating', 'sidebar'].includes(currentMode)) currentMode = 'floating';
         if (!['left', 'top', 'right', 'bottom'].includes(currentSide)) currentSide = 'left';
         if (!['top', 'center', 'bottom', 'left', 'right'].includes(currentPosition)) currentPosition = 'center';
+        if (!['adjacent', 'modal'].includes(currentDisplayStyle)) currentDisplayStyle = 'adjacent';
 
         function updateUrlParams() {
             const params = new URLSearchParams();
             params.set('mode', currentMode);
+            params.set('display', currentDisplayStyle);
             if (currentMode === 'sidebar') {
                 params.set('side', currentSide);
                 params.set('position', currentPosition);
@@ -459,10 +483,14 @@
             // Set position buttons
             updatePositionButtons();
 
+            // Set display style buttons
+            document.getElementById('btn-adjacent').classList.toggle('active', currentDisplayStyle === 'adjacent');
+            document.getElementById('btn-modal').classList.toggle('active', currentDisplayStyle === 'modal');
+
             // Render menu with initial settings
             if (window.PandaMenu) {
                 window.PandaMenu.cleanup();
-                window.PandaMenu.render(null, currentMode, currentMode === 'sidebar' ? { position: currentPosition, side: currentSide } : undefined);
+                window.PandaMenu.render(null, currentMode, currentMode === 'sidebar' ? { position: currentPosition, side: currentSide } : undefined, currentDisplayStyle);
             }
         }
 
@@ -484,7 +512,25 @@
             // Cleanup existing menu and re-render with new mode
             if (window.PandaMenu) {
                 window.PandaMenu.cleanup();
-                window.PandaMenu.render(null, mode, mode === 'sidebar' ? { position: currentPosition, side: currentSide } : undefined);
+                window.PandaMenu.render(null, mode, mode === 'sidebar' ? { position: currentPosition, side: currentSide } : undefined, currentDisplayStyle);
+            }
+
+            updateUrlParams();
+        }
+
+        function setDisplayStyle(style) {
+            if (style === currentDisplayStyle) return;
+
+            currentDisplayStyle = style;
+
+            // Update button states
+            document.getElementById('btn-adjacent').classList.toggle('active', style === 'adjacent');
+            document.getElementById('btn-modal').classList.toggle('active', style === 'modal');
+
+            // Cleanup existing menu and re-render with new display style
+            if (window.PandaMenu) {
+                window.PandaMenu.cleanup();
+                window.PandaMenu.render(null, currentMode, currentMode === 'sidebar' ? { position: currentPosition, side: currentSide } : undefined, style);
             }
 
             updateUrlParams();
@@ -513,7 +559,7 @@
             // Re-render sidebar with new side
             if (window.PandaMenu && currentMode === 'sidebar') {
                 window.PandaMenu.cleanup();
-                window.PandaMenu.render(null, 'sidebar', { position: currentPosition, side: side });
+                window.PandaMenu.render(null, 'sidebar', { position: currentPosition, side: side }, currentDisplayStyle);
             }
 
             updateUrlParams();
@@ -528,7 +574,7 @@
             // Re-render sidebar with new position
             if (window.PandaMenu && currentMode === 'sidebar') {
                 window.PandaMenu.cleanup();
-                window.PandaMenu.render(null, 'sidebar', { position: position, side: currentSide });
+                window.PandaMenu.render(null, 'sidebar', { position: position, side: currentSide }, currentDisplayStyle);
             }
 
             updateUrlParams();

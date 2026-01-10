@@ -1,5 +1,6 @@
 export type ColorMode = 'light' | 'dark' | '';
 export type MenuMode = 'floating' | 'sidebar' | 'attached';
+export type DisplayStyle = 'adjacent' | 'modal';
 
 export interface SidebarConfig {
   /** Position along the edge - defaults to 'center'
@@ -25,6 +26,8 @@ export interface HostRule {
   attachParent?: number;
   /** Sidebar-specific configuration (only used when menuMode is 'sidebar') */
   sidebarConfig?: SidebarConfig;
+  /** Display style - 'adjacent' shows menu next to trigger, 'modal' shows centered with overlay */
+  displayStyle?: DisplayStyle;
 }
 
 const HOST_RULES: HostRule[] = [
@@ -233,5 +236,15 @@ export function getSidebarConfig(): SidebarConfig {
     }
   }
   return {};
+}
+
+export function getDisplayStyle(): DisplayStyle {
+  const rules = getHostConfig();
+  for (const rule of rules) {
+    if (rule.displayStyle) {
+      return rule.displayStyle;
+    }
+  }
+  return 'adjacent';
 }
 

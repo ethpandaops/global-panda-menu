@@ -3,7 +3,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useNetworksData } from '../hooks/useNetworksData';
 import { LOGO_DATA_URL } from '../config/logo';
 import { MenuDropdown } from './MenuDropdown';
-import type { MenuMode, SidebarConfig } from '../config/hostStyles';
+import type { MenuMode, SidebarConfig, DisplayStyle } from '../config/hostStyles';
 
 export interface PandaMenuHandle {
   toggle: () => void;
@@ -18,10 +18,12 @@ interface PandaMenuProps {
   attachTargetHeight?: number;
   /** Sidebar configuration (sidebar mode only) */
   sidebarConfig?: SidebarConfig;
+  /** Display style - 'adjacent' shows next to trigger, 'modal' shows centered with overlay */
+  displayStyle?: DisplayStyle;
 }
 
 export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
-  function PandaMenu({ mode = 'floating', attachTargetHeight = 0, sidebarConfig = {} }, ref) {
+  function PandaMenu({ mode = 'floating', attachTargetHeight = 0, sidebarConfig = {}, displayStyle = 'adjacent' }, ref) {
     const theme = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const { loading, error, currentLocation, sortedCategories, retry } =
@@ -57,13 +59,11 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
     // Sidebar mode: expanding sidebar panel
     if (mode === 'sidebar') {
       const { position = 'center', side = 'left', collapsedWidth = 16 } = sidebarConfig;
-      const isTop = side === 'top';
-      const isBottom = side === 'bottom';
-      const isLeft = side === 'left';
-      const isRight = side === 'right';
+      const isModal = displayStyle === 'modal';
 
       // Top/Bottom side: horizontal bar
-      if (isTop || isBottom) {
+      if (side === 'top' || side === 'bottom') {
+        const isTop = side === 'top';
         const hPos = (position === 'left' || position === 'center' || position === 'right') ? position : 'center';
 
         // Position classes for the container
@@ -76,20 +76,38 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
         // Chevron directions based on side
         const chevronCollapsed = isTop ? 'M19 9l-7 7-7-7' : 'M5 15l7-7 7 7';  // down for top, up for bottom
         const chevronExpanded = isTop ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7';   // up for top, down for bottom
+        const isExpandedAdjacent = isOpen && !isModal;
 
         return (
           <div className={`font-sans ${themeClass}`}>
+            {/* Backdrop - darkened for modal, transparent for adjacent */}
             {isOpen && (
               <div
-                className="fixed inset-0 z-[999998]"
+                className={`fixed inset-0 z-[999998] ${isModal ? 'bg-black/50' : ''}`}
                 onClick={handleClose}
                 aria-hidden="true"
               />
             )}
 
-            {/* Container spans full width for center, uses flexbox to center content */}
+            {/* Modal: centered dropdown */}
+            {isModal && isOpen && (
+              <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
+                <div className="pointer-events-auto w-80 max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg shadow-2xl">
+                  <MenuDropdown
+                    loading={loading}
+                    error={error}
+                    sortedCategories={sortedCategories}
+                    currentLocation={currentLocation}
+                    onClose={handleClose}
+                    onRetry={retry}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Sidebar trigger - always visible, expands inline only in adjacent mode */}
             <div
-              className={`panda-menu-sidebar fixed ${isTop ? 'top-0' : 'bottom-0'} ${horizontalPositionClasses[hPos]} z-[999999] flex flex-col ${isBottom ? 'flex-col-reverse' : ''}`}
+              className={`panda-menu-sidebar fixed ${isTop ? 'top-0' : 'bottom-0'} ${horizontalPositionClasses[hPos]} z-[999999] flex flex-col ${!isTop ? 'flex-col-reverse' : ''}`}
             >
               <div
                 className={`
@@ -99,24 +117,24 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                   transition-all duration-200 ease-out
                 `}
                 style={{
-                  width: isOpen ? 320 : 96,
-                  height: isOpen ? 'auto' : collapsedWidth,
-                  maxHeight: isOpen ? 'min(80vh, 600px)' : undefined
+                  width: isExpandedAdjacent ? 320 : 96,
+                  height: isExpandedAdjacent ? 'auto' : collapsedWidth,
+                  maxHeight: isExpandedAdjacent ? 'min(80vh, 600px)' : undefined
                 }}
               >
                 {/* Toggle button / header area */}
                 <button
                   onClick={() => setIsOpen(!isOpen)}
                   className={`
-                    group flex shrink-0 items-center justify-center
+                    group flex shrink-0 items-center
                     transition-all hover:bg-menu-hover
-                    ${isOpen ? 'h-12 justify-between gap-2 px-3' : 'h-full w-full'}
+                    ${isExpandedAdjacent ? 'h-12 justify-between gap-2 px-3' : 'h-full w-full justify-center'}
                   `}
                   aria-label={isOpen ? 'Close Panda Menu' : 'Open Panda Menu'}
                   aria-expanded={isOpen}
                 >
-                  {/* Collapsed: chevron */}
-                  {!isOpen && (
+                  {/* Collapsed: chevron only */}
+                  {!isExpandedAdjacent && (
                     <svg
                       className="size-4 text-menu-text-muted transition-colors group-hover:text-menu-text"
                       fill="none"
@@ -128,8 +146,8 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                     </svg>
                   )}
 
-                  {/* Expanded: logo + title + chevron */}
-                  {isOpen && (
+                  {/* Expanded adjacent: logo + title + chevron */}
+                  {isExpandedAdjacent && (
                     <>
                       <div className="flex items-center gap-2">
                         <img src={LOGO_DATA_URL} alt="ethPandaOps" className="size-6" />
@@ -148,7 +166,8 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                   )}
                 </button>
 
-                {isOpen && (
+                {/* Adjacent mode: inline expanded content */}
+                {isExpandedAdjacent && (
                   <div className={`min-h-0 flex-1 overflow-y-auto ${isTop ? 'border-t' : 'border-b'} border-menu-border`}>
                     <MenuDropdown
                       loading={loading}
@@ -168,7 +187,10 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
       }
 
       // Left/Right side: vertical bar
+      const isLeft = side === 'left';
+      const isRight = side === 'right';
       const vPos = (position === 'top' || position === 'center' || position === 'bottom') ? position : 'center';
+      const isExpandedAdjacent = isOpen && !isModal;
 
       // Chevron paths for different states
       const chevronExpand = isLeft ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7';
@@ -180,21 +202,38 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
         if (vPos === 'bottom') return { bottom: 32 };
         // Center: position from top, accounting for max menu height
         // This keeps the menu visually centered regardless of its current height
-        return { top: '50%', marginTop: isOpen ? -300 : -48 }; // -300 = half of 600px max, -48 = half of 96px
+        // In modal mode, sidebar stays collapsed so always use -48
+        return { top: '50%', marginTop: isExpandedAdjacent ? -300 : -48 }; // -300 = half of 600px max, -48 = half of 96px
       };
 
       return (
         <div className={`font-sans ${themeClass}`}>
-          {/* Backdrop for closing */}
+          {/* Backdrop - darkened for modal, transparent for adjacent */}
           {isOpen && (
             <div
-              className="fixed inset-0 z-[999998]"
+              className={`fixed inset-0 z-[999998] ${isModal ? 'bg-black/50' : ''}`}
               onClick={handleClose}
               aria-hidden="true"
             />
           )}
 
-          {/* Sidebar container */}
+          {/* Modal: centered dropdown */}
+          {isModal && isOpen && (
+            <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
+              <div className="pointer-events-auto w-80 max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg shadow-2xl">
+                <MenuDropdown
+                  loading={loading}
+                  error={error}
+                  sortedCategories={sortedCategories}
+                  currentLocation={currentLocation}
+                  onClose={handleClose}
+                  onRetry={retry}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Sidebar trigger - always visible, expands inline only in adjacent mode */}
           <div
             className={`panda-menu-sidebar fixed ${isLeft ? 'left-0' : 'right-0'} z-[999999] flex`}
             style={getPositionStyle()}
@@ -205,26 +244,25 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                 ${isLeft ? 'rounded-r-sm border-r' : 'rounded-l-sm border-l'} border-y border-menu-border
                 bg-menu-bg/95 backdrop-blur-sm shadow-xl
                 transition-all duration-200 ease-out
-                ${isOpen ? 'w-80' : ''}
               `}
               style={{
-                width: isOpen ? 320 : collapsedWidth,
-                height: isOpen ? 600 : 96
+                width: isExpandedAdjacent ? 320 : collapsedWidth,
+                height: isExpandedAdjacent ? 600 : 96
               }}
             >
               {/* Toggle button / header area */}
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                  group flex h-24 shrink-0 items-center
+                  group flex shrink-0 items-center
                   transition-all hover:bg-menu-hover
-                  ${isOpen ? 'justify-between gap-2 px-3' : 'justify-center'}
+                  ${isExpandedAdjacent ? 'h-24 justify-between gap-2 px-3' : 'h-full w-full justify-center'}
                 `}
                 aria-label={isOpen ? 'Close Panda Menu' : 'Open Panda Menu'}
                 aria-expanded={isOpen}
               >
-                {/* Collapsed: chevron pointing inward */}
-                {!isOpen && (
+                {/* Collapsed: chevron only */}
+                {!isExpandedAdjacent && (
                   <svg
                     className="size-4 text-menu-text-muted transition-colors group-hover:text-menu-text"
                     fill="none"
@@ -236,8 +274,8 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                   </svg>
                 )}
 
-                {/* Expanded: logo + title + chevron pointing outward */}
-                {isOpen && (
+                {/* Expanded adjacent: logo + title + chevron */}
+                {isExpandedAdjacent && (
                   <>
                     <div className={`flex items-center gap-2 ${isRight ? 'order-2' : ''}`}>
                       <img src={LOGO_DATA_URL} alt="ethPandaOps" className="size-8" />
@@ -256,8 +294,8 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                 )}
               </button>
 
-              {/* Menu content - only rendered when expanded */}
-              {isOpen && (
+              {/* Adjacent mode: inline expanded content */}
+              {isExpandedAdjacent && (
                 <div className="min-h-0 flex-1 overflow-y-auto border-t border-menu-border">
                   <MenuDropdown
                     loading={loading}
@@ -305,6 +343,8 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
     }
 
     // Default floating button mode
+    const isModal = displayStyle === 'modal';
+
     return (
       <div
         className={`panda-menu-button fixed left-4 top-4 z-[999999] font-sans ${themeClass}`}
@@ -324,21 +364,38 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
 
         {isOpen && (
           <>
+            {/* Backdrop - darkened for modal, transparent for adjacent */}
             <div
-              className="fixed inset-0 z-[-1]"
+              className={`fixed inset-0 ${isModal ? 'z-[999998] bg-black/50' : 'z-[-1]'}`}
               onClick={handleClose}
               aria-hidden="true"
             />
-            <div className="absolute left-0 top-14 w-80 overflow-hidden rounded-lg border border-menu-border bg-menu-bg shadow-2xl">
-              <MenuDropdown
-                loading={loading}
-                error={error}
-                sortedCategories={sortedCategories}
-                currentLocation={currentLocation}
-                onClose={handleClose}
-                onRetry={retry}
-              />
-            </div>
+            {/* Menu dropdown - centered for modal, positioned for adjacent */}
+            {isModal ? (
+              <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
+                <div className="pointer-events-auto w-80 max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg shadow-2xl">
+                  <MenuDropdown
+                    loading={loading}
+                    error={error}
+                    sortedCategories={sortedCategories}
+                    currentLocation={currentLocation}
+                    onClose={handleClose}
+                    onRetry={retry}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="absolute left-0 top-14 w-80 overflow-hidden rounded-lg border border-menu-border bg-menu-bg shadow-2xl">
+                <MenuDropdown
+                  loading={loading}
+                  error={error}
+                  sortedCategories={sortedCategories}
+                  currentLocation={currentLocation}
+                  onClose={handleClose}
+                  onRetry={retry}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
