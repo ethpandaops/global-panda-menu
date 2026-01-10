@@ -1,6 +1,6 @@
 import { RefObject } from 'react';
 import { createRoot } from 'react-dom/client';
-import { PandaMenuHandle } from '../components/PandaMenu';
+import { MenuContainerHandle } from '../components/MenuContainer';
 import type { MenuMode, SidebarConfig, DisplayStyle, MenuSize } from '../config/hostStyles';
 
 export interface PandaMenuContext {
@@ -28,7 +28,7 @@ export interface PandaMenuContext {
 export interface RenderResult {
   hostElement: HTMLElement;
   root: ReturnType<typeof createRoot>;
-  menuRef: RefObject<PandaMenuHandle | null>;
+  menuRef: RefObject<MenuContainerHandle | null>;
   attachTarget: HTMLElement | null;
   clickHandler: ((e: MouseEvent) => void) | null;
 }

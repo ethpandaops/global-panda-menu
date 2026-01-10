@@ -55,3 +55,8 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-menu-text-muted);
 }
+
+/* Menu dropdown max-width constraint for small screens */
+.panda-menu-dropdown {
+  max-width: calc(100vw - (var(--spacing) * 8));
+}

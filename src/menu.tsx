@@ -1,7 +1,15 @@
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { PandaMenu, PandaMenuHandle } from './components/PandaMenu';
-import { getMenuCss, getAttachParent, getHostCss, MenuMode, SidebarConfig, DisplayStyle, MenuSize } from './config/hostStyles';
+import { MenuContainer, MenuContainerHandle } from './components/MenuContainer';
+import {
+  getMenuCss,
+  getAttachParent,
+  getHostCss,
+  MenuMode,
+  SidebarConfig,
+  DisplayStyle,
+  MenuSize,
+} from './config/hostStyles';
 import { PandaMenuContext, RenderResult } from './types/context';
 
 import styles from './styles/index.css?inline';
@@ -13,7 +21,7 @@ const MAX_ATTEMPTS = POLL_TIMEOUT / POLL_INTERVAL;
 const MENU_ELEMENT_ID = 'panda-menu-root';
 const STYLE_ELEMENT_ID = 'panda-menu-host-styles';
 
-let pandaMenuCtx: PandaMenuContext = (window as any).PandaMenu = (window as any).PandaMenu || {};
+let pandaMenuCtx: PandaMenuContext = ((window as any).PandaMenu = (window as any).PandaMenu || {});
 let currentRender: RenderResult | null = null;
 let removalObserver: MutationObserver | null = null;
 
@@ -76,7 +84,7 @@ export function renderMenu(
   container.id = 'panda-menu-container';
   shadowRoot.appendChild(container);
 
-  const menuRef = createRef<PandaMenuHandle>();
+  const menuRef = createRef<MenuContainerHandle>();
   const root = createRoot(container);
 
   let clickHandler: ((e: MouseEvent) => void) | null = null;
@@ -84,7 +92,15 @@ export function renderMenu(
   if (mode === 'attached' && attachTarget) {
     // Render in attached mode with target height for positioning
     const targetHeight = attachTarget.offsetHeight;
-    root.render(<PandaMenu ref={menuRef} mode="attached" attachTargetHeight={targetHeight} displayStyle={displayStyle} menuSize={menuSize} />);
+    root.render(
+      <MenuContainer
+        ref={menuRef}
+        mode="attached"
+        attachTargetHeight={targetHeight}
+        displayStyle={displayStyle}
+        menuSize={menuSize}
+      />
+    );
 
     // Attach click handler to the target element
     attachTarget.style.cursor = 'pointer';
@@ -96,13 +112,21 @@ export function renderMenu(
     attachTarget.addEventListener('click', clickHandler);
   } else if (mode === 'sidebar') {
     // Render in sidebar mode
-    root.render(<PandaMenu ref={menuRef} mode="sidebar" sidebarConfig={sidebarConfig} displayStyle={displayStyle} menuSize={menuSize} />);
+    root.render(
+      <MenuContainer
+        ref={menuRef}
+        mode="sidebar"
+        sidebarConfig={sidebarConfig}
+        displayStyle={displayStyle}
+        menuSize={menuSize}
+      />
+    );
   } else if (mode === 'hidden') {
     // Hidden mode: no visible button, keyboard toggle only
-    root.render(<PandaMenu ref={menuRef} mode="hidden" displayStyle={displayStyle} menuSize={menuSize} />);
+    root.render(<MenuContainer ref={menuRef} mode="hidden" displayStyle={displayStyle} menuSize={menuSize} />);
   } else {
     // Default floating button mode
-    root.render(<PandaMenu ref={menuRef} mode="floating" displayStyle={displayStyle} menuSize={menuSize} />);
+    root.render(<MenuContainer ref={menuRef} mode="floating" displayStyle={displayStyle} menuSize={menuSize} />);
   }
 
   pandaMenuCtx.open = () => menuRef.current?.open();
@@ -119,9 +143,7 @@ export function setupRemovalObserver(attachSelector: string) {
     // Check if our host element was removed
     const hostStillInDOM = document.contains(currentRender.hostElement);
     // Check if attach target was removed (for attached mode)
-    const targetStillInDOM = currentRender.attachTarget
-      ? document.contains(currentRender.attachTarget)
-      : true;
+    const targetStillInDOM = currentRender.attachTarget ? document.contains(currentRender.attachTarget) : true;
 
     if (!hostStillInDOM || !targetStillInDOM) {
       // Our elements were removed, clean up and re-attach
@@ -166,7 +188,9 @@ export function pollAndRender(attachSelector: string) {
       setTimeout(pollForElement, POLL_INTERVAL);
     } else {
       // Timeout, fall back to floating button mode
-      console.warn(`[panda-menu] Could not find element "${attachSelector}" after ${POLL_TIMEOUT}ms, using floating button`);
+      console.warn(
+        `[panda-menu] Could not find element "${attachSelector}" after ${POLL_TIMEOUT}ms, using floating button`
+      );
       renderMenu(null);
       // No observer needed for floating mode
     }
