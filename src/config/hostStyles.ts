@@ -171,14 +171,19 @@ export function getHostConfig(): HostRule[] {
   return getMatchingRules(hostname);
 }
 
-export function getDefaultColorMode(): ColorMode {
+/** Find the first rule with a defined property value */
+function findRuleProperty<K extends keyof HostRule>(key: K): HostRule[K] | undefined {
   const rules = getHostConfig();
   for (const rule of rules) {
-    if (rule.defaultColorMode) {
-      return rule.defaultColorMode;
+    if (rule[key] !== undefined) {
+      return rule[key];
     }
   }
-  return '';
+  return undefined;
+}
+
+export function getDefaultColorMode(): ColorMode {
+  return findRuleProperty('defaultColorMode') ?? '';
 }
 
 export function getMenuCss(): string {
@@ -198,23 +203,11 @@ export function getHostCss(): string {
 }
 
 export function getAttachSelector(): string | null {
-  const rules = getHostConfig();
-  for (const rule of rules) {
-    if (rule.attachTo) {
-      return rule.attachTo;
-    }
-  }
-  return null;
+  return findRuleProperty('attachTo') ?? null;
 }
 
 export function getAttachParent(): number {
-  const rules = getHostConfig();
-  for (const rule of rules) {
-    if (rule.attachParent) {
-      return rule.attachParent;
-    }
-  }
-  return 0;
+  return findRuleProperty('attachParent') ?? 0;
 }
 
 export function getMenuMode(): MenuMode {
@@ -232,33 +225,15 @@ export function getMenuMode(): MenuMode {
 }
 
 export function getSidebarConfig(): SidebarConfig {
-  const rules = getHostConfig();
-  for (const rule of rules) {
-    if (rule.sidebarConfig) {
-      return rule.sidebarConfig;
-    }
-  }
-  return {};
+  return findRuleProperty('sidebarConfig') ?? {};
 }
 
 export function getDisplayStyle(): DisplayStyle {
-  const rules = getHostConfig();
-  for (const rule of rules) {
-    if (rule.displayStyle) {
-      return rule.displayStyle;
-    }
-  }
-  return 'adjacent';
+  return findRuleProperty('displayStyle') ?? 'adjacent';
 }
 
 export function getMenuSize(): MenuSize {
-  const rules = getHostConfig();
-  for (const rule of rules) {
-    if (rule.menuSize) {
-      return rule.menuSize;
-    }
-  }
-  return 'normal';
+  return findRuleProperty('menuSize') ?? 'normal';
 }
 
 export function getMenuWidth(size: MenuSize): number {

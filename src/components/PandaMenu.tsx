@@ -1,10 +1,11 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { useNetworksData } from '../hooks/useNetworksData';
+import { useNetworksData, CategoryData } from '../hooks/useNetworksData';
 import { LOGO_DATA_URL } from '../config/logo';
 import { MenuDropdown } from './MenuDropdown';
 import type { MenuMode, SidebarConfig, DisplayStyle, MenuSize } from '../config/hostStyles';
 import { getMenuWidth } from '../config/hostStyles';
+import { CurrentLocation } from '../services/networkService';
 
 export interface PandaMenuHandle {
   toggle: () => void;
@@ -23,6 +24,38 @@ interface PandaMenuProps {
   displayStyle?: DisplayStyle;
   /** Menu size preset - 'compact', 'normal', 'large' */
   menuSize?: MenuSize;
+}
+
+const MODAL_BOX_SHADOW = '0 0 60px 15px rgba(0, 0, 0, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.8)';
+
+interface ModalDropdownProps {
+  menuWidth: number;
+  loading: boolean;
+  error: string | null;
+  sortedCategories: CategoryData[];
+  currentLocation: CurrentLocation;
+  onClose: () => void;
+  onRetry: () => void;
+}
+
+function ModalDropdown({ menuWidth, loading, error, sortedCategories, currentLocation, onClose, onRetry }: ModalDropdownProps): React.ReactElement {
+  return (
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
+      <div
+        className="pointer-events-auto max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg"
+        style={{ width: menuWidth, boxShadow: MODAL_BOX_SHADOW }}
+      >
+        <MenuDropdown
+          loading={loading}
+          error={error}
+          sortedCategories={sortedCategories}
+          currentLocation={currentLocation}
+          onClose={onClose}
+          onRetry={onRetry}
+        />
+      </div>
+    </div>
+  );
 }
 
 export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
@@ -95,18 +128,15 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
 
             {/* Modal: centered dropdown */}
             {isModal && isOpen && (
-              <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
-                <div className="pointer-events-auto max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg" style={{ width: menuWidth, boxShadow: '0 0 60px 15px rgba(0, 0, 0, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.8)' }}>
-                  <MenuDropdown
-                    loading={loading}
-                    error={error}
-                    sortedCategories={sortedCategories}
-                    currentLocation={currentLocation}
-                    onClose={handleClose}
-                    onRetry={retry}
-                  />
-                </div>
-              </div>
+              <ModalDropdown
+                menuWidth={menuWidth}
+                loading={loading}
+                error={error}
+                sortedCategories={sortedCategories}
+                currentLocation={currentLocation}
+                onClose={handleClose}
+                onRetry={retry}
+              />
             )}
 
             {/* Sidebar trigger - always visible, expands inline only in adjacent mode */}
@@ -192,7 +222,6 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
 
       // Left/Right side: vertical bar
       const isLeft = side === 'left';
-      const isRight = side === 'right';
       const vPos = (position === 'top' || position === 'center' || position === 'bottom') ? position : 'center';
       const isExpandedAdjacent = isOpen && !isModal;
 
@@ -223,18 +252,15 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
 
           {/* Modal: centered dropdown */}
           {isModal && isOpen && (
-            <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg" style={{ width: menuWidth, boxShadow: '0 0 60px 15px rgba(0, 0, 0, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.8)' }}>
-                <MenuDropdown
-                  loading={loading}
-                  error={error}
-                  sortedCategories={sortedCategories}
-                  currentLocation={currentLocation}
-                  onClose={handleClose}
-                  onRetry={retry}
-                />
-              </div>
-            </div>
+            <ModalDropdown
+              menuWidth={menuWidth}
+              loading={loading}
+              error={error}
+              sortedCategories={sortedCategories}
+              currentLocation={currentLocation}
+              onClose={handleClose}
+              onRetry={retry}
+            />
           )}
 
           {/* Sidebar trigger - always visible, expands inline only in adjacent mode */}
@@ -282,12 +308,12 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
                 {/* Expanded adjacent: logo + title + chevron */}
                 {isExpandedAdjacent && (
                   <>
-                    <div className={`flex items-center gap-2 ${isRight ? 'order-2' : ''}`}>
+                    <div className={`flex items-center gap-2 ${!isLeft ? 'order-2' : ''}`}>
                       <img src={LOGO_DATA_URL} alt="ethPandaOps" className="size-8" />
                       <span className="text-sm font-medium text-menu-text">ethPandaOps</span>
                     </div>
                     <svg
-                      className={`size-4 text-menu-text-muted transition-colors group-hover:text-menu-text ${isRight ? 'order-1' : ''}`}
+                      className={`size-4 text-menu-text-muted transition-colors group-hover:text-menu-text ${!isLeft ? 'order-1' : ''}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -361,18 +387,15 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
             onClick={handleClose}
             aria-hidden="true"
           />
-          <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg" style={{ width: menuWidth, boxShadow: '0 0 60px 15px rgba(0, 0, 0, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.8)' }}>
-              <MenuDropdown
-                loading={loading}
-                error={error}
-                sortedCategories={sortedCategories}
-                currentLocation={currentLocation}
-                onClose={handleClose}
-                onRetry={retry}
-              />
-            </div>
-          </div>
+          <ModalDropdown
+            menuWidth={menuWidth}
+            loading={loading}
+            error={error}
+            sortedCategories={sortedCategories}
+            currentLocation={currentLocation}
+            onClose={handleClose}
+            onRetry={retry}
+          />
         </div>
       );
     }
@@ -407,18 +430,15 @@ export const PandaMenu = forwardRef<PandaMenuHandle, PandaMenuProps>(
             />
             {/* Menu dropdown - centered for modal, positioned for adjacent */}
             {isModal ? (
-              <div className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none">
-                <div className="pointer-events-auto max-h-[80vh] overflow-hidden rounded-lg border border-menu-border bg-menu-bg" style={{ width: menuWidth, boxShadow: '0 0 60px 15px rgba(0, 0, 0, 0.6), 0 25px 50px -12px rgba(0, 0, 0, 0.8)' }}>
-                  <MenuDropdown
-                    loading={loading}
-                    error={error}
-                    sortedCategories={sortedCategories}
-                    currentLocation={currentLocation}
-                    onClose={handleClose}
-                    onRetry={retry}
-                  />
-                </div>
-              </div>
+              <ModalDropdown
+                menuWidth={menuWidth}
+                loading={loading}
+                error={error}
+                sortedCategories={sortedCategories}
+                currentLocation={currentLocation}
+                onClose={handleClose}
+                onRetry={retry}
+              />
             ) : (
               <div className="absolute left-0 top-14 overflow-hidden rounded-lg border border-menu-border bg-menu-bg shadow-2xl" style={{ width: menuWidth }}>
                 <MenuDropdown
