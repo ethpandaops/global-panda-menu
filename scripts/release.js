@@ -65,6 +65,26 @@ const metadataFile = path.resolve(releaseDir, `metadata-${version}.json`);
 fs.writeFileSync(metadataFile, JSON.stringify(metadata, null, 2));
 console.log(`Created release/metadata-${version}.json`);
 
+// Update versions.json index
+const versionsFile = path.resolve(releaseDir, 'versions.json');
+let versions = [];
+if (fs.existsSync(versionsFile)) {
+  versions = JSON.parse(fs.readFileSync(versionsFile, 'utf8'));
+}
+if (!versions.includes(version)) {
+  versions.push(version);
+  // Sort by semver descending (latest first)
+  versions.sort((a, b) => {
+    const [aMajor, aMinor, aPatch] = a.split('.').map(Number);
+    const [bMajor, bMinor, bPatch] = b.split('.').map(Number);
+    if (bMajor !== aMajor) return bMajor - aMajor;
+    if (bMinor !== aMinor) return bMinor - aMinor;
+    return bPatch - aPatch;
+  });
+  fs.writeFileSync(versionsFile, JSON.stringify(versions, null, 2));
+  console.log(`Updated release/versions.json`);
+}
+
 console.log('\nRelease complete!');
 console.log(`\nTo include with SRI, use:`);
 console.log(`<script src="panda-menu-${version}.js" integrity="${sha384}" crossorigin="anonymous"></script>`);

@@ -14,7 +14,11 @@ module.exports = (env, argv) => {
     { from: 'public', to: '.' },
   ];
   if (hasReleaseFiles) {
-    copyPatterns.push({ from: 'release', to: '.' });
+    copyPatterns.push({
+      from: 'release',
+      to: '.',
+      info: { minimized: true },
+    });
   }
 
   const plugins = [

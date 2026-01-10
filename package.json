@@ -1,6 +1,6 @@
 {
   "name": "panda-menu",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Cross-service navigation menu for ethPandaOps tools",
   "main": "dist/panda-menu.js",
   "scripts": {
