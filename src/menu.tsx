@@ -135,7 +135,7 @@ export function renderMenu(
   pandaMenuCtx.currentRender = currentRender = { hostElement, root, menuRef, attachTarget, clickHandler };
 }
 
-export function setupRemovalObserver(attachSelector: string) {
+function setupRemovalObserver(attachSelector: string) {
   // Watch for removal of our host element or the attach target
   removalObserver = new MutationObserver(() => {
     if (!currentRender) return;
