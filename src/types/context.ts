@@ -14,6 +14,11 @@ export interface PandaMenuContext {
   menuSize?: MenuSize;
   /** Override sidebar config */
   sidebarConfig?: SidebarConfig;
+  /** Override hostname used for current-location detection.
+   * Useful when a tool is deployed under a deeper subdomain (e.g.
+   * "instance.srv.<network>.ethpandaops.io") and wants to force matching
+   * a specific network entry. */
+  currentHostname?: string;
 
   initialized: boolean;
   currentRender: RenderResult | null;

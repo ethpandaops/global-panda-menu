@@ -54,28 +54,40 @@ export interface CurrentLocation {
   categoryKey: string | null;
 }
 
+/** Returns true when networkKey appears as a complete subdomain segment of hostname. */
+function hostnameMatchesNetworkKey(hostname: string, networkKey: string): boolean {
+  return (
+    hostname === networkKey ||
+    hostname.startsWith(networkKey + '.') ||
+    hostname.includes('.' + networkKey + '.')
+  );
+}
+
 export function detectCurrentLocation(
   networks: Record<string, Network>
 ): CurrentLocation {
-  const currentOrigin = window.location.origin;
-  const currentHostname = window.location.hostname;
+  // Allow buildoor/etc. deployed under deeper subdomains to force a match
+  // by setting window.PandaMenuConfig.currentHostname before init.
+  const override = (window as unknown as { PandaMenu?: { currentHostname?: string } }).PandaMenu
+    ?.currentHostname;
+  const currentHostname = override || window.location.hostname;
+  const currentOrigin = override
+    ? `${window.location.protocol}//${override}`
+    : window.location.origin;
 
-  // Match against service URLs from discovery data
+  // First pass: match by service URL or network homepage URL (origin must match exactly).
   for (const [networkKey, network] of Object.entries(networks)) {
     const serviceUrls = network.serviceUrls || {};
 
     for (const [serviceKey, serviceUrl] of Object.entries(serviceUrls)) {
       if (!serviceUrl) continue;
-
-      // Check if current origin matches the service URL
       try {
         const url = new URL(serviceUrl);
         if (url.origin === currentOrigin) {
-          const categoryKey = extractCategory(networkKey);
           return {
             networkKey,
             serviceKey,
-            categoryKey,
+            categoryKey: extractCategory(networkKey),
           };
         }
       } catch {
@@ -83,30 +95,42 @@ export function detectCurrentLocation(
       }
     }
 
-    // Check if current origin matches the network's homepage URL
     if (network.url) {
       try {
         const url = new URL(network.url);
         if (url.origin === currentOrigin) {
-          const categoryKey = extractCategory(networkKey);
           return {
             networkKey,
             serviceKey: null,
-            categoryKey,
+            categoryKey: extractCategory(networkKey),
           };
         }
       } catch {
         // Invalid URL, skip
       }
     }
+  }
 
-    // Check if hostname matches network key pattern (e.g., bal-devnet-1.ethpandaops.io)
-    if (currentHostname.startsWith(networkKey + '.')) {
-      const categoryKey = extractCategory(networkKey);
+  // Second pass: match by hostname starting with the network key (most specific).
+  for (const networkKey of Object.keys(networks)) {
+    if (currentHostname === networkKey || currentHostname.startsWith(networkKey + '.')) {
       return {
         networkKey,
         serviceKey: null,
-        categoryKey,
+        categoryKey: extractCategory(networkKey),
+      };
+    }
+  }
+
+  // Third pass: match the network key as a deeper subdomain segment, preferring
+  // the longest key to avoid false positives when shorter keys are substrings.
+  const sortedKeys = Object.keys(networks).sort((a, b) => b.length - a.length);
+  for (const networkKey of sortedKeys) {
+    if (hostnameMatchesNetworkKey(currentHostname, networkKey)) {
+      return {
+        networkKey,
+        serviceKey: null,
+        categoryKey: extractCategory(networkKey),
       };
     }
   }
