@@ -1,0 +1,11 @@
+{
+  "version": "1.0.1",
+  "filename": "panda-menu-1.0.1.js",
+  "size": 123923,
+  "integrity": {
+    "sha256": "sha256-nn0V+VuQkCN91d4UMBdflUnQXN6T3d0NalRKKWFdNJ4=",
+    "sha384": "sha384-icGX6g6CzB0tqlhDc6Su4c6IPVbcbUvfM3xjbbFYsYBwuZR79WkmOxDhGEPfmyn2",
+    "sha512": "sha512-p8B0NqdSC++00VJsmb7qVJSkHwZhGCGUzgD59ZZH3sMLFVA4oQQuhj5pkmuO5UsmWxM6Zl2USArqgWQOyKZCSw=="
+  },
+  "buildDate": "2026-05-08T22:32:49.488Z"
+}
